@@ -317,8 +317,8 @@ export default function DashboardAnalyticsPage({ onNavigateToSessions, onNavigat
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-800">
-            {statusDist.map((item) => (
-              <div key={item.status} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+            {statusDist.map((item, idx) => (
+              <div key={item.status ? `status-${item.status}` : `status-${idx}`} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
                 <div className="flex items-center gap-1.5">
                   <span 
                     className="w-2 h-2 rounded-full" 
@@ -395,9 +395,9 @@ export default function DashboardAnalyticsPage({ onNavigateToSessions, onNavigat
                 description="Launch an active session kiosk to start marking student check-ins."
               />
             ) : (
-              recent.map((rec) => (
+              recent.map((rec, idx) => (
                 <div
-                  key={rec.id}
+                  key={rec.id ? `rec-${rec.id}` : `rec-${idx}`}
                   className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/80 flex items-center justify-between hover:border-slate-700/80 transition"
                 >
                   <div className="flex items-center gap-3">
@@ -457,8 +457,8 @@ export default function DashboardAnalyticsPage({ onNavigateToSessions, onNavigat
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
-                {lowAlerts.map((st) => (
-                  <tr key={st.student_id} className="hover:bg-slate-800/30 transition">
+                {lowAlerts.map((st, idx) => (
+                  <tr key={st.student_id ? `st-${st.student_id}` : `st-${idx}`} className="hover:bg-slate-800/30 transition">
                     <td className="py-2.5 px-3 font-semibold text-white">{st.student_name}</td>
                     <td className="py-2.5 px-3 font-mono text-slate-300">{st.roll_number}</td>
                     <td className="py-2.5 px-3 text-slate-400">{st.course_name}</td>

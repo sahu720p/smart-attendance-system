@@ -35,6 +35,45 @@ def check_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
         s.settimeout(0.3)
         return s.connect_ex((host, port)) == 0
 
+def free_port(port: int, host: str = "127.0.0.1") -> bool:
+    """Terminate any stale process holding the port to allow a clean start."""
+    if not check_port_in_use(port, host):
+        return True
+    
+    print(f"{YELLOW}[WARN] Port {port} is occupied by an existing process. Freeing port...{RESET}")
+    if sys.platform != "win32":
+        try:
+            res = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+            pids = [int(p) for p in res.stdout.strip().split() if p.isdigit()]
+            for pid in pids:
+                if pid != os.getpid():
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except OSError:
+                        pass
+            time.sleep(0.8)
+        except Exception as e:
+            print(f"{YELLOW}[WARN] Could not automatically kill process on port {port}: {e}{RESET}")
+    else:
+        try:
+            res = subprocess.run(f"netstat -ano | findstr :{port}", shell=True, capture_output=True, text=True)
+            for line in res.stdout.strip().splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 5 and parts[1].endswith(f":{port}"):
+                    pid = parts[-1]
+                    if pid.isdigit() and int(pid) != os.getpid():
+                        subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
+            time.sleep(0.8)
+        except Exception as e:
+            print(f"{YELLOW}[WARN] Could not automatically kill process on port {port}: {e}{RESET}")
+
+    if check_port_in_use(port, host):
+        print(f"{RED}[ERROR] Port {port} could not be freed. Please close conflicting apps manually.{RESET}")
+        return False
+    else:
+        print(f"{GREEN}✓ Port {port} is now free.{RESET}")
+        return True
+
 def find_python_executable():
     """Detect the appropriate Python executable with uvicorn available."""
     is_win = sys.platform == "win32"
@@ -127,11 +166,10 @@ def main():
         print("  pip install -r requirements.txt\n")
         sys.exit(1)
 
-    # 2. Check Port Availability
-    if check_port_in_use(8000):
-        print(f"{YELLOW}[WARN] Port 8000 is already in use. An existing backend process might conflict.{RESET}")
-    if check_port_in_use(5173):
-        print(f"{YELLOW}[WARN] Port 5173 is already in use. Vite will automatically pick the next free port.{RESET}")
+    # 2. Check and Free Ports
+    if not free_port(8000):
+        sys.exit(1)
+    free_port(5173)
 
     # 3. Check Frontend node_modules
     node_modules_dir = FRONTEND_DIR / "node_modules"
@@ -159,9 +197,14 @@ def main():
         env=os.environ.copy(),
         start_new_session=is_posix
     )
+    backend_proc._name = "Backend (FastAPI)"
     processes.append(backend_proc)
 
     time.sleep(1.5)
+    if backend_proc.poll() is not None:
+        print(f"{RED}[ERROR] Backend failed to start (exit code {backend_proc.returncode}).{RESET}")
+        cleanup()
+        sys.exit(1)
 
     # 5. Start Frontend
     print(f"{YELLOW}[2/2] Starting Frontend (React/Vite)...{RESET}")
@@ -174,9 +217,14 @@ def main():
         start_new_session=is_posix,
         shell=(sys.platform == "win32")
     )
+    frontend_proc._name = "Frontend (React/Vite)"
     processes.append(frontend_proc)
 
     time.sleep(2)
+    if frontend_proc.poll() is not None:
+        print(f"{RED}[ERROR] Frontend failed to start (exit code {frontend_proc.returncode}).{RESET}")
+        cleanup()
+        sys.exit(1)
 
     print(f"""
 {GREEN}{BOLD}===========================================================
@@ -205,7 +253,11 @@ def main():
         while True:
             time.sleep(1)
             for p in processes:
-                if p.poll() is not None:
+                code = p.poll()
+                if code is not None:
+                    name = getattr(p, "_name", "A service")
+                    if code != 0:
+                        print(f"\n{RED}[WARN] {name} exited with code {code}.{RESET}")
                     cleanup()
     except KeyboardInterrupt:
         cleanup()
