@@ -6,7 +6,7 @@
 [![OpenCV](https://img.shields.io/badge/OpenCV-YuNet%20%2B%20SFace-5C3EE8.svg?style=flat&logo=opencv)](https://opencv.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg?style=flat&logo=react)](https://react.dev)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38B2AC.svg?style=flat&logo=tailwind-css)](https://tailwindcss.com)
-[![Tests](https://img.shields.io/badge/Pytest-50%2F50%20Passing-brightgreen.svg?style=flat)](https://docs.pytest.org)
+[![Tests](https://img.shields.io/badge/Pytest-58%2F58%20Passing-brightgreen.svg?style=flat)](https://docs.pytest.org)
 
 A production-grade, end-to-end college attendance management system driven by deep learning computer vision, active anti-spoofing challenge verification, role-based access control, SIMD-accelerated biometric vector search, real-time analytics, and formal institutional document generation.
 
@@ -87,13 +87,36 @@ The system initializes with default academic credentials upon first startup:
 - Node.js 18+ and npm
 - Webcam / camera device
 
-### 1. Clone & Setup Backend
+---
+
+### Option A: One-Click Launch (Recommended) 🚀
+
+Run both the FastAPI backend and React frontend simultaneously with a single command from the project root:
+
+```bash
+python3 run.py
+```
+
+**What this does automatically:**
+- Auto-detects virtual environments (`backend/venv`, `.venv`, etc.).
+- Verifies and installs missing frontend dependencies (`npm install`).
+- Checks port availability for `8000` (FastAPI) and `5173` (Vite).
+- Starts FastAPI backend with auto-reload at `http://127.0.0.1:8000`.
+- Starts React/Vite development server at `http://127.0.0.1:5173`.
+- Automatically opens your default web browser to the dashboard.
+- Cleanly terminates both process groups and releases ports on `Ctrl + C`.
+
+---
+
+### Option B: Manual Setup (Separate Terminals)
+
+#### 1. Setup Backend
 ```bash
 cd backend
 
 # Create virtual environment
-python3.12 -m venv venv
-source venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -106,7 +129,7 @@ The backend will be available at:
 - **Interactive Swagger Docs**: `http://127.0.0.1:8000/api/v1/docs`
 - **ReDoc Specification**: `http://127.0.0.1:8000/api/v1/redoc`
 
-### 2. Setup Frontend
+#### 2. Setup Frontend
 ```bash
 cd frontend
 
@@ -121,9 +144,34 @@ The web application will be accessible at:
 
 ---
 
+## Configuration & Environment Variables
+
+The system works out of the box with default development settings. To customize parameters (e.g. face recognition thresholds, JWT secret, session expiration), copy the sample configuration:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+---
+
+## Administrative Utilities
+
+### Reset or Create Admin Credentials
+If you need to change the Administrator password or create a new admin account:
+
+```bash
+cd backend
+python reset_admin.py --password "YourNewPassword@123"
+# Or specify a custom username:
+python reset_admin.py --username "newadmin" --password "YourNewPassword@123"
+```
+
+---
+
 ## Running the Automated Test Suite
 
-The system includes 50 comprehensive unit, integration, security, performance, and end-to-end tests:
+The system includes 58 comprehensive unit, integration, security, performance, and end-to-end tests:
 
 ```bash
 cd backend
@@ -131,18 +179,20 @@ source venv/bin/activate
 PYTHONPATH=. pytest -v
 ```
 
-### Test Suite Coverage:
-- `test_auth.py`: Login flows, password hashing, token validation, RBAC guards.
-- `test_database.py`: Model constraints, foreign key cascades, unique indices.
+### Test Suite Coverage (14 Test Modules):
+- `test_auth.py`: Login flows, Argon2id password hashing, token validation, RBAC guards.
+- `test_database.py`: Model constraints, foreign key cascades, composite unique indices.
 - `test_students.py`: Student management, search, deactivation, authorization.
-- `test_face_registration.py`: Quality filters, blur thresholds, multi-sample enrollment.
-- `test_face_recognition.py`: Cosine similarity matching and unknown face rejection.
+- `test_faculty.py`: Faculty onboarding, department filtering, credentials management.
+- `test_face_registration.py`: Quality filters, Laplacian blur thresholds, multi-sample enrollment.
+- `test_face_recognition.py`: SFace cosine similarity matching and unknown face rejection.
 - `test_liveness.py`: Head yaw rotation, eye blink, smile challenge verification, token TTL.
 - `test_attendance_engine.py`: Session creation, live kiosk marking, duplicate prevention, late rules.
 - `test_dashboard.py`: KPI calculations, 7-day trend aggregations, low attendance warnings.
-- `test_reports.py`: JSON query, PDF, Excel (.xlsx), and CSV document exports.
-- `test_security.py`: HTTP headers, payload size enforcement, rate limiting, vector shielding.
+- `test_reports.py`: JSON query, ReportLab PDF, openpyxl Excel (.xlsx), and CSV document exports.
+- `test_security.py`: HTTP security headers, 15MB payload cap, rate limiting, vector shielding.
 - `test_performance.py`: SIMD matrix dot product, cache hit benchmarks, query latencies.
+- `test_health.py`: Database health probes, system status, API readiness checks.
 - `test_e2e_lifecycle.py`: Complete student provisioning, enrollment, session lifecycle, and spoof attack rejection.
 
 ---
